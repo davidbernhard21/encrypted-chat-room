@@ -1,3 +1,7 @@
+import os
+
+os.environ['TCL_LIBRARY'] = r'C:\Users\David\AppData\Local\Programs\Python\Python313\tcl\tcl8.6'
+
 # import all the required modules
 import sys
 import socket
@@ -15,7 +19,7 @@ from Crypto.Cipher import ChaCha20
 #from Crypto.Util.Padding import pad
 
 PORT = 8000
-SERVER = "chat.galvan.xyz"
+SERVER = "0.0.0.0"
 ADDRESS = (SERVER, PORT)
 
 chakey = b'12345678901234567890123465790123'  # key should be 32 bytes
