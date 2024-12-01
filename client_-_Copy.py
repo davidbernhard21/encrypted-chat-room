@@ -1,5 +1,4 @@
 import os
-
 os.environ['TCL_LIBRARY'] = r'C:\Users\David\AppData\Local\Programs\Python\Python313\tcl\tcl8.6'
 
 # import all the required modules
@@ -18,9 +17,11 @@ from Crypto.Cipher import ChaCha20
 #from Crypto.Util.Padding import unpad
 #from Crypto.Util.Padding import pad
 
-PORT = 8000
-SERVER = "0.0.0.0"
+PORT = 8081
+SERVER = '127.0.0.1'
 ADDRESS = (SERVER, PORT)
+print("JANCOK: " + ADDRESS[0])
+print("ASU: " + str(ADDRESS[1]))
 
 chakey = b'12345678901234567890123465790123'  # key should be 32 bytes
 
@@ -129,6 +130,16 @@ class GUI:
         self.layout(name, room, color)
 
         client.connect(ADDRESS)
+
+        # Test connect to the server
+        # try:
+        #     client.connect(ADDRESS)
+        #     print("Connected to server successfully")
+        # except ConnectionRefusedError:
+        #     print("Connection refused by the server")
+        # except Exception as e:
+        #     print(f"Error: {e}")
+
         client.send(room.encode())
         response = client.recv(10)
         if response == b'ok':

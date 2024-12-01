@@ -6,10 +6,10 @@ import socket
 import threading
 
 # Choose a port that is free
-PORT = 8000
+PORT = 8081
 
 # An IPv4 address for the server.
-SERVER = '0.0.0.0'
+SERVER = '127.0.0.1'
 
 # Address is stored as a tuple
 ADDRESS = (SERVER, PORT)
@@ -34,7 +34,7 @@ server.bind(ADDRESS)
 
 # function to start the connection
 def startChat():
-    print("server is working on " + SERVER)
+    print("server is working on " + SERVER + " : " + str(PORT))
 
     # listening for connections
     server.listen()
