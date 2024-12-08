@@ -1,6 +1,6 @@
-from utils.algorithms import *
+from saber.utils.algorithms import *
 from typing import Tuple
-from pke import PKE
+from saber.pke import PKE
 
 class KEM:
 

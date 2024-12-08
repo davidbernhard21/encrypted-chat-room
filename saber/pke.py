@@ -1,5 +1,4 @@
-from utils.polynomial import Polynomial
-from utils.algorithms import *
+from saber.utils.algorithms import *
 from typing import Tuple
 
 class PKE:

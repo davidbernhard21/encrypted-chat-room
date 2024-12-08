@@ -4,8 +4,8 @@ import numpy as np
 from secrets import token_bytes
 from hashlib import sha3_256, sha3_512, shake_128
 
-from utils.polynomial import Polynomial
-from utils.binary_utils import *
+from saber.utils.polynomial import *
+from saber.utils.binary_utils import *
 
 
 def shiftleft(pin: Polynomial, s: int) -> Polynomial:

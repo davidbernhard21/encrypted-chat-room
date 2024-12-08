@@ -1,4 +1,12 @@
 import os
+
+# from saber import kem
+from saber.utils.constans import CONSTANTS_LIGHT_SABER
+from saber.utils.algorithms import randombytes
+from Crypto.Cipher import AES
+from saber.pke import PKE
+from saber.kem import KEM
+
 # The Tcl library is part of the Tcl (Tool Command Language) ecosystem.
 # Tcl is a high-level, interpreted scripting language that is known for its simplicity and flexibility.
 # The Tcl library, often referred to as tcllib,
@@ -40,6 +48,35 @@ client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 class GUI:
     # constructor method
     def __init__(self):
+
+        # Define the PKE class
+        kem = KEM(**CONSTANTS_LIGHT_SABER)
+        # Step 1: Generate key pairs for both clients
+        public_key_A, secret_key_A = kem.KeyGen()
+        print("Key Pair")
+        print(public_key_A)
+        print(secret_key_A)
+        public_key_B, secret_key_B = kem.KeyGen()
+        print(public_key_B)
+        print(secret_key_B)
+
+        # Step 2: Client A encapsulates a symmetric key for Client B
+        session_key_alice, ciphertext = kem.Encaps(public_key_B)
+        print("Chiper Text")
+        print(ciphertext)
+
+        # Step 3: Client B decapsulates the symmetric key
+        session_key_bob  = kem.Decaps(ciphertext, secret_key_B)
+        print("Shared Secred B")
+        print(session_key_bob )
+
+        # Verify that both shared secrets are identical
+        assert session_key_alice == session_key_bob
+
+        # Convert shared secret to a 32-byte key for ChaCha20
+        symmetric_key = session_key_alice[:32] # Take the first 32 bytes
+        print("Symmetric key")
+        print(symmetric_key)
 
         # chat window which is currently hidden
         self.Window = Tk()
