@@ -157,10 +157,9 @@ class GUI:
             cipher = ChaCha20.new(key=chakey)
             print(f"[{cipher}] ChaCha20 Object Cipher One")
             ciphertext = cipher.encrypt(joined)
-            print(f"Joined text before encrypt: [{joined}]")
-            print(f"Joined text after encrypt: [{ciphertext}] ChaCha20 Cipher Text One")
+            print(f"Joined text after encrypt: [{ciphertext}] with ChaCha20")
             client.send(cipher.nonce + ciphertext)
-            print(f"Nonce + joined text after encrypt: [{cipher.nonce + ciphertext}] ChaCha20 Send One")
+            print(f"Nonce + joined text after encrypt: [{cipher.nonce + ciphertext}]")
             client.recv(10)
 
             cipher2 = ChaCha20.new(key=chakey)
@@ -285,17 +284,18 @@ class GUI:
                     nonce = data[:encryption_len]  # 8 bytes for the nonce
                     ciphertext = data[
                                  encryption_len:]  # the rest of the data is encrypted
-                    if receivedChakey == b'empty':
+
+                    if receivedChakey == b'empty': # new guest joined chatroom
                         cipher = ChaCha20.new(key=chakey, nonce=nonce)
-                    else:
+                    else: # existing guest send message
                         cipher = ChaCha20.new(key=receivedChakey, nonce=nonce)
+
                     # cipher = ChaCha20.new(key=chakey, nonce=nonce)
                     print(f"Nonce + received message: [{nonce + ciphertext}] Received Encrypted Message with ChaCha20")
                     message = cipher.decrypt(ciphertext)
-                    print(f"Decrypted message: [{message}]")
                     message = message.decode(errors="ignore")
                     splittedMessage = message.split('!')
-                    print(splittedMessage)
+                    print(f"Splitted message: [{splittedMessage}]")
                     if len(splittedMessage) > 1:
                         receivedChakey = splittedMessage[1].encode()
                     print(f"Decoded message: [{message}]")
@@ -331,7 +331,7 @@ class GUI:
 
         try:
             # chacha20 encryption
-            print(receivedChakey)
+            print(f"Current ChaCha20 key: [{receivedChakey}]")
             cipher = ChaCha20.new(key=receivedChakey)
             ciphertext = cipher.encrypt(message)
             client.send(cipher.nonce + ciphertext)
