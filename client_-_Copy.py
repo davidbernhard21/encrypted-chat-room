@@ -1,10 +1,17 @@
 import os
+# The Tcl library is part of the Tcl (Tool Command Language) ecosystem.
+# Tcl is a high-level, interpreted scripting language that is known for its simplicity and flexibility.
+# The Tcl library, often referred to as tcllib,
+# is a collection of modules and packages that extend the functionality of the core Tcl language.
 os.environ['TCL_LIBRARY'] = r'C:\Users\David\AppData\Local\Programs\Python\Python313\tcl\tcl8.6'
 
 # import all the required modules
 import sys
 import socket
 import threading
+# Tkinter is the standard GUI (Graphical User Interface) library included with most Python installations.
+# It provides tools for creating desktop applications with graphical interfaces,
+# allowing developers to build windows, dialogs, buttons, and other interactive elements.
 from tkinter import *
 from tkinter import font
 from tkinter import ttk
@@ -20,15 +27,12 @@ from Crypto.Cipher import ChaCha20
 PORT = 8081
 SERVER = '127.0.0.1'
 ADDRESS = (SERVER, PORT)
-print("JANCOK: " + ADDRESS[0])
-print("ASU: " + str(ADDRESS[1]))
 
 chakey = b'12345678901234567890123465790123'  # key should be 32 bytes
-
 aeskey = b'mysecretpassword'  #16 byte password
+receivedChakey = b'empty'
 
-# Create a new client socket
-# and connect to the server
+# Create a new client socket and connect to the server
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 
@@ -97,7 +101,7 @@ class GUI:
         self.go = Button(self.login,
                          text="Continue",
                          font="BookAntiqua 12",
-                         command=lambda: self.goAhead(self.entryName.get(
+                         command=lambda: self.createRoom(self.entryName.get(
                          ), self.roomName.get(), self.roomColor.get()))
 
         self.go.place(relx=0.4, rely=0.8)
@@ -105,9 +109,9 @@ class GUI:
         self.login.protocol("WM_DELETE_WINDOW", on_closing)
         self.Window.mainloop()
 
-    def goAhead(self, name, room, color):
+    def createRoom(self, name, room, color):
         self.login.destroy()
-        print('here go ahdead')
+        print('here we go, chat room is created')
         room = room.upper()
 
         if not name or not room:
@@ -145,19 +149,26 @@ class GUI:
         if response == b'ok':
             client.send(name.encode())
             client.recv(10)
-            joined = (f"[{name}] HAS JOINED THE CHAT!").encode()
+            joined = (f"[{name}] HAS JOINED THE CHAT!{chakey.decode()}").encode()
             left = (f"[{name}] HAS LEFT THE CHAT!").encode()
             # client.send(joined.encode())
 
             # chacha20 encryption
             cipher = ChaCha20.new(key=chakey)
+            print(f"[{cipher}] ChaCha20 Object Cipher One")
             ciphertext = cipher.encrypt(joined)
+            print(f"Joined text before encrypt: [{joined}]")
+            print(f"Joined text after encrypt: [{ciphertext}] ChaCha20 Cipher Text One")
             client.send(cipher.nonce + ciphertext)
+            print(f"Nonce + joined text after encrypt: [{cipher.nonce + ciphertext}] ChaCha20 Send One")
             client.recv(10)
 
             cipher2 = ChaCha20.new(key=chakey)
+            # print(f"Left text before encrypt: [{cipher2}] ChaCha20 Object Cipher Two")
             ciphertext2 = cipher2.encrypt(left)
+            # print(f"Left text after encrypt: [{ciphertext2}] ChaCha20 Cipher Text Two")
             client.send(cipher2.nonce + ciphertext2)
+            # print(f"Nonce + left text after encrypt: [{cipher2.nonce + ciphertext2}] ChaCha20 Send Two")
             client.recv(10)
 
             # the thread to receive messages
@@ -259,6 +270,7 @@ class GUI:
 
     # function to receive messages
     def receive(self):
+        global receivedChakey
         while True:
             try:
                 data = client.recv(4096)
@@ -273,10 +285,20 @@ class GUI:
                     nonce = data[:encryption_len]  # 8 bytes for the nonce
                     ciphertext = data[
                                  encryption_len:]  # the rest of the data is encrypted
-                    cipher = ChaCha20.new(key=chakey, nonce=nonce)
+                    if receivedChakey == b'empty':
+                        cipher = ChaCha20.new(key=chakey, nonce=nonce)
+                    else:
+                        cipher = ChaCha20.new(key=receivedChakey, nonce=nonce)
+                    # cipher = ChaCha20.new(key=chakey, nonce=nonce)
+                    print(f"Nonce + received message: [{nonce + ciphertext}] Received Encrypted Message with ChaCha20")
                     message = cipher.decrypt(ciphertext)
-                    print(message)
+                    print(f"Decrypted message: [{message}]")
                     message = message.decode(errors="ignore")
+                    splittedMessage = message.split('!')
+                    print(splittedMessage)
+                    if len(splittedMessage) > 1:
+                        receivedChakey = splittedMessage[1].encode()
+                    print(f"Decoded message: [{message}]")
 
                     # aes decryption
                     #iv = data[:encryption_len]  # 16 bytes for the iv
@@ -295,9 +317,10 @@ class GUI:
                 # print('Connection error')
                 client.close()
                 break
-            except:
+            except EXCEPTION as e:
                 # an error will be printed on the command line or console if there's an error
                 print("An error occurred!")
+                print(f"Error: {e}")
                 # continue
 
     # function to send messages
@@ -308,9 +331,11 @@ class GUI:
 
         try:
             # chacha20 encryption
-            cipher = ChaCha20.new(key=chakey)
+            print(receivedChakey)
+            cipher = ChaCha20.new(key=receivedChakey)
             ciphertext = cipher.encrypt(message)
             client.send(cipher.nonce + ciphertext)
+            print(f"Nonce + sent message: [{cipher.nonce + ciphertext}] Sent Encrypted Message with ChaCha20")
 
             # aes encryption
             #cipher = AES.new(aeskey, AES.MODE_CBC)

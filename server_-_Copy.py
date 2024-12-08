@@ -14,26 +14,21 @@ SERVER = '127.0.0.1'
 # Address is stored as a tuple
 ADDRESS = (SERVER, PORT)
 
-# the format in which encoding
-# and decoding will occur
+# the format in which encoding and decoding will occur
 FORMAT = "utf-8"
 
-# Lists that will contains
-# all the clients/rooms connected to
-# the server.
+# Lists that will contain all the clients/rooms connected to the server.
 rooms = {'GENERAL': {}, 'SCHOOL': {}}
 
-# Create a new socket for
-# the server
+# Create a new socket for the server
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-# bind the address of the
-# server to the socket
+# bind the address of the server to the socket
 server.bind(ADDRESS)
 
 
 # function to start the connection
-def startChat():
+def startServer():
     print("server is working on " + SERVER + " : " + str(PORT))
 
     # listening for connections
@@ -68,7 +63,7 @@ def startChat():
             thread.start()
 
             # no. of clients connected to the server
-            print(f"active connections {threading.activeCount() - 1}")
+            print(f"active connections {threading.active_count() - 1}")
 
         else:
             print('Room does not exist.')
@@ -107,7 +102,7 @@ def broadcastMessage(message, room):
 
 # begin the communication
 try:
-    startChat()
+    startServer()
 except KeyboardInterrupt:
     server.close()
     server.close()
