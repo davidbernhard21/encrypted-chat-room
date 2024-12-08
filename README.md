@@ -30,5 +30,5 @@ Security: Prevents replay attacks and ensures the integrity of the encrypted dat
 By using cipher.nonce, you can securely manage and store the nonce value needed for both encryption and decryption processes.
 
 
-
+PERTANYAAN UNTUK AI seprti Copilot
 show me sample python code to combine KEM mechanism using Saber with ChaCha20 Symmetric Key thak transfered between two clients
