@@ -17,6 +17,7 @@ os.environ['TCL_LIBRARY'] = r'C:\Users\David\AppData\Local\Programs\Python\Pytho
 import sys
 import socket
 import threading
+import time
 # Tkinter is the standard GUI (Graphical User Interface) library included with most Python installations.
 # It provides tools for creating desktop applications with graphical interfaces,
 # allowing developers to build windows, dialogs, buttons, and other interactive elements.
@@ -28,9 +29,9 @@ from matplotlib.colors import is_color_like
 from matplotlib.colors import to_hex
 from Crypto.Cipher import ChaCha20
 
-#from Crypto.Cipher import AES
-#from Crypto.Util.Padding import unpad
-#from Crypto.Util.Padding import pad
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import unpad
+from Crypto.Util.Padding import pad
 
 PORT = 8081
 SERVER = '127.0.0.1'
@@ -49,34 +50,34 @@ class GUI:
     # constructor method
     def __init__(self):
 
-        # Define the PKE class
-        kem = KEM(**CONSTANTS_LIGHT_SABER)
-        # Step 1: Generate key pairs for both clients
-        public_key_A, secret_key_A = kem.KeyGen()
-        print("Key Pair")
-        print(public_key_A)
-        print(secret_key_A)
-        public_key_B, secret_key_B = kem.KeyGen()
-        print(public_key_B)
-        print(secret_key_B)
-
-        # Step 2: Client A encapsulates a symmetric key for Client B
-        session_key_alice, ciphertext = kem.Encaps(public_key_B)
-        print("Chiper Text")
-        print(ciphertext)
-
-        # Step 3: Client B decapsulates the symmetric key
-        session_key_bob  = kem.Decaps(ciphertext, secret_key_B)
-        print("Shared Secred B")
-        print(session_key_bob )
-
-        # Verify that both shared secrets are identical
-        assert session_key_alice == session_key_bob
-
-        # Convert shared secret to a 32-byte key for ChaCha20
-        symmetric_key = session_key_alice[:32] # Take the first 32 bytes
-        print("Symmetric key")
-        print(symmetric_key)
+        # # Define the KEM class
+        # kem = KEM(**CONSTANTS_LIGHT_SABER)
+        # # Step 1: Generate key pairs for both clients
+        # public_key_A, secret_key_A = kem.KeyGen()
+        # print("Key Pair")
+        # print(public_key_A)
+        # print(secret_key_A)
+        # public_key_B, secret_key_B = kem.KeyGen()
+        # print(public_key_B)
+        # print(secret_key_B)
+        #
+        # # Step 2: Client A encapsulates a symmetric key for Client B
+        # session_key_alice, ciphertext = kem.Encaps(public_key_B)
+        # print("Chiper Text")
+        # print(ciphertext)
+        #
+        # # Step 3: Client B decapsulates the symmetric key
+        # session_key_bob  = kem.Decaps(ciphertext, secret_key_B)
+        # print("Shared Secred B")
+        # print(session_key_bob )
+        #
+        # # Verify that both shared secrets are identical
+        # assert session_key_alice == session_key_bob
+        #
+        # # Convert shared secret to a 32-byte key for ChaCha20
+        # symmetric_key = session_key_alice[:32] # Take the first 32 bytes
+        # print("Symmetric key")
+        # print(symmetric_key)
 
         # chat window which is currently hidden
         self.Window = Tk()
@@ -190,21 +191,32 @@ class GUI:
             left = (f"[{name}] HAS LEFT THE CHAT!").encode()
             # client.send(joined.encode())
 
-            # chacha20 encryption
-            cipher = ChaCha20.new(key=chakey)
-            print(f"[{cipher}] ChaCha20 Object Cipher One")
-            ciphertext = cipher.encrypt(joined)
-            print(f"Joined text after encrypt: [{ciphertext}] with ChaCha20")
-            client.send(cipher.nonce + ciphertext)
-            print(f"Nonce + joined text after encrypt: [{cipher.nonce + ciphertext}]")
+            # # chacha20 encryption
+            # cipher = ChaCha20.new(key=chakey)
+            # print(f"[{cipher}] ChaCha20 Object Cipher One")
+            # ciphertext = cipher.encrypt(joined)
+            # print(f"Joined text after encrypt: [{ciphertext}] with ChaCha20")
+            # client.send(cipher.nonce + ciphertext)
+            # print(f"Nonce + joined text after encrypt: [{cipher.nonce + ciphertext}]")
+            # client.recv(10)
+
+            # cipher2 = ChaCha20.new(key=chakey)
+            # # print(f"Left text before encrypt: [{cipher2}] ChaCha20 Object Cipher Two")
+            # ciphertext2 = cipher2.encrypt(left)
+            # # print(f"Left text after encrypt: [{ciphertext2}] ChaCha20 Cipher Text Two")
+            # client.send(cipher2.nonce + ciphertext2)
+            # # print(f"Nonce + left text after encrypt: [{cipher2.nonce + ciphertext2}] ChaCha20 Send Two")
+            # client.recv(10)
+
+            # aes encryption
+            cipher = AES.new(aeskey, AES.MODE_CBC)
+            ciphertext = cipher.encrypt(pad(joined, AES.block_size))
+            client.send(cipher.iv + ciphertext)
             client.recv(10)
 
-            cipher2 = ChaCha20.new(key=chakey)
-            # print(f"Left text before encrypt: [{cipher2}] ChaCha20 Object Cipher Two")
-            ciphertext2 = cipher2.encrypt(left)
-            # print(f"Left text after encrypt: [{ciphertext2}] ChaCha20 Cipher Text Two")
-            client.send(cipher2.nonce + ciphertext2)
-            # print(f"Nonce + left text after encrypt: [{cipher2.nonce + ciphertext2}] ChaCha20 Send Two")
+            cipher2 = AES.new(aeskey, AES.MODE_CBC)
+            ciphertext2 = cipher2.encrypt(pad(joined, AES.block_size))
+            client.send(cipher.iv + ciphertext2)
             client.recv(10)
 
             # the thread to receive messages
@@ -306,43 +318,51 @@ class GUI:
 
     # function to receive messages
     def receive(self):
-        global receivedChakey
+        # global receivedChakey
         while True:
             try:
                 data = client.recv(4096)
 
-                #encryption_len = 16  # for aes
-                encryption_len = 8  # for chacha20
+                encryption_len = 16  # for aes
+                # encryption_len = 8  # for chacha20
 
                 # if there is at least 1 byte encrypted
                 if data and len(data) > encryption_len + 1:
 
-                    # chacha20 decryption
-                    nonce = data[:encryption_len]  # 8 bytes for the nonce
-                    ciphertext = data[
-                                 encryption_len:]  # the rest of the data is encrypted
+                    # # chacha20 decryption
+                    # nonce = data[:encryption_len]  # 8 bytes for the nonce
+                    # ciphertext = data[
+                    #              encryption_len:]  # the rest of the data is encrypted
 
-                    if receivedChakey == b'empty': # new guest joined chatroom
-                        cipher = ChaCha20.new(key=chakey, nonce=nonce)
-                    else: # existing guest send message
-                        cipher = ChaCha20.new(key=receivedChakey, nonce=nonce)
-
-                    # cipher = ChaCha20.new(key=chakey, nonce=nonce)
-                    print(f"Nonce + received message: [{nonce + ciphertext}] Received Encrypted Message with ChaCha20")
-                    message = cipher.decrypt(ciphertext)
-                    message = message.decode(errors="ignore")
-                    splittedMessage = message.split('!')
-                    print(f"Splitted message: [{splittedMessage}]")
-                    if len(splittedMessage) > 1:
-                        receivedChakey = splittedMessage[1].encode()
-                    print(f"Decoded message: [{message}]")
+                    # if receivedChakey == b'empty': # new guest joined chatroom
+                    #     cipher = ChaCha20.new(key=chakey, nonce=nonce)
+                    # else: # existing guest send message
+                    #     cipher = ChaCha20.new(key=receivedChakey, nonce=nonce)
+                    #
+                    # # cipher = ChaCha20.new(key=chakey, nonce=nonce)
+                    # print(f"Nonce + received message: [{nonce + ciphertext}] Received Encrypted Message with ChaCha20")
+                    # message = cipher.decrypt(ciphertext)
+                    # message = message.decode(errors="ignore")
+                    # splittedMessage = message.split('!')
+                    # print(f"Splitted message: [{splittedMessage}]")
+                    # if len(splittedMessage) > 1:
+                    #     receivedChakey = splittedMessage[1].encode()
+                    # print(f"Decoded message: [{message}]")
 
                     # aes decryption
-                    #iv = data[:encryption_len]  # 16 bytes for the iv
-                    #ciphertext = data[encryption_len:]
-                    #cipher = AES.new(aeskey, AES.MODE_CBC, iv)
-                    #message = unpad(cipher.decrypt(ciphertext), AES.block_size)
-                    #message = message.decode()
+                    iv = data[:encryption_len]  # 16 bytes for the iv
+                    ciphertext = data[encryption_len:]
+                    cipher = AES.new(aeskey, AES.MODE_CBC, iv)
+
+                    start_time = time.perf_counter()
+                    # print(f"Start Encryption Time: {start_time:.7f} seconds")
+                    message = unpad(cipher.decrypt(ciphertext), AES.block_size)
+                    end_time = time.perf_counter()
+                    # print(f"End Encryption Time: {end_time:.7f} seconds")
+                    elapsed_time_seconds = end_time - start_time
+                    print(f"Elapsed Receive Decryption Time: {elapsed_time_seconds:.7f} seconds")
+
+                    message = message.decode()
 
                     # insert messages to text box
                     self.textCons.config(state=NORMAL)
@@ -367,17 +387,25 @@ class GUI:
         message = (f"{self.name}: {self.msg}").encode()
 
         try:
-            # chacha20 encryption
-            print(f"Current ChaCha20 key: [{receivedChakey}]")
-            cipher = ChaCha20.new(key=receivedChakey)
-            ciphertext = cipher.encrypt(message)
-            client.send(cipher.nonce + ciphertext)
-            print(f"Nonce + sent message: [{cipher.nonce + ciphertext}] Sent Encrypted Message with ChaCha20")
+            # # chacha20 encryption
+            # print(f"Current ChaCha20 key: [{receivedChakey}]")
+            # cipher = ChaCha20.new(key=receivedChakey)
+            # ciphertext = cipher.encrypt(message)
+            # client.send(cipher.nonce + ciphertext)
+            # print(f"Nonce + sent message: [{cipher.nonce + ciphertext}] Sent Encrypted Message with ChaCha20")
 
             # aes encryption
-            #cipher = AES.new(aeskey, AES.MODE_CBC)
-            #ciphertext = cipher.encrypt(pad(message, AES.block_size))
-            #client.send(cipher.iv + ciphertext)
+            cipher = AES.new(aeskey, AES.MODE_CBC)
+
+            start_time = time.perf_counter()
+            # print(f"Start Encryption Time: {start_time:.7f} seconds")
+            ciphertext = cipher.encrypt(pad(message, AES.block_size))
+            end_time = time.perf_counter()
+            # print(f"End Encryption Time: {end_time:.7f} seconds")
+            elapsed_time_seconds = end_time - start_time
+            print(f"Elapsed Send Encryption Time: {elapsed_time_seconds:.7f} seconds")
+
+            client.send(cipher.iv + ciphertext)
         except BrokenPipeError:
             print('Server is down')
             self.Window.destroy()
