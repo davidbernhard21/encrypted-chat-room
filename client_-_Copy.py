@@ -21,8 +21,6 @@ import threading
 # It provides tools for creating desktop applications with graphical interfaces,
 # allowing developers to build windows, dialogs, buttons, and other interactive elements.
 from tkinter import *
-from tkinter import font
-from tkinter import ttk
 from tkinter import messagebox
 from matplotlib.colors import is_color_like
 from matplotlib.colors import to_hex
@@ -39,6 +37,8 @@ ADDRESS = (SERVER, PORT)
 chakey = b'12345678901234567890123465790123'  # key should be 32 bytes
 aeskey = b'mysecretpassword'  #16 byte password
 receivedChakey = b'empty'
+publicKey = b'empty'
+privateKey = b'empty'
 
 # Create a new client socket and connect to the server
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -49,34 +49,36 @@ class GUI:
     # constructor method
     def __init__(self):
 
-        # Define the PKE class
-        kem = KEM(**CONSTANTS_LIGHT_SABER)
+        # Define the KEM class
+        # kem = KEM(**CONSTANTS_LIGHT_SABER)
         # Step 1: Generate key pairs for both clients
-        public_key_A, secret_key_A = kem.KeyGen()
-        print("Key Pair")
-        print(public_key_A)
-        print(secret_key_A)
-        public_key_B, secret_key_B = kem.KeyGen()
-        print(public_key_B)
-        print(secret_key_B)
+        # public_key_A, private_key_A = kem.KeyGen()
+        # publicKey = public_key_A
+        # privateKey = private_key_A
+        # print("Key Pair")
+        # print(f"Public Key produced: {publicKey}")
+        # print(f"Secret Key produced: {privateKey}")
+        # public_key_B, secret_key_B = kem.KeyGen()
+        # print(public_key_B)
+        # print(secret_key_B)
 
         # Step 2: Client A encapsulates a symmetric key for Client B
-        session_key_alice, ciphertext = kem.Encaps(public_key_B)
-        print("Chiper Text")
-        print(ciphertext)
+        # session_key_alice, ciphertext = kem.Encaps(public_key_B)
+        # print("Chiper Text")
+        # print(ciphertext)
 
         # Step 3: Client B decapsulates the symmetric key
-        session_key_bob  = kem.Decaps(ciphertext, secret_key_B)
-        print("Shared Secred B")
-        print(session_key_bob )
+        # session_key_bob  = kem.Decaps(ciphertext, secret_key_B)
+        # print("Shared Secred B")
+        # print(session_key_bob )
 
         # Verify that both shared secrets are identical
-        assert session_key_alice == session_key_bob
+        # assert session_key_alice == session_key_bob
 
         # Convert shared secret to a 32-byte key for ChaCha20
-        symmetric_key = session_key_alice[:32] # Take the first 32 bytes
-        print("Symmetric key")
-        print(symmetric_key)
+        # symmetric_key = session_key_alice[:32] # Take the first 32 bytes
+        # print("Symmetric key")
+        # print(symmetric_key)
 
         # chat window which is currently hidden
         self.Window = Tk()
@@ -147,6 +149,9 @@ class GUI:
         self.Window.mainloop()
 
     def createRoom(self, name, room, color):
+
+        global publicKey, privateKey
+
         self.login.destroy()
         print('here we go, chat room is created')
         room = room.upper()
@@ -186,18 +191,29 @@ class GUI:
         if response == b'ok':
             client.send(name.encode())
             client.recv(10)
-            joined = (f"[{name}] HAS JOINED THE CHAT!{chakey.decode()}").encode()
+            # joined = (f"[{name}] HAS JOINED THE CHAT!").encode()
             left = (f"[{name}] HAS LEFT THE CHAT!").encode()
             # client.send(joined.encode())
 
-            # chacha20 encryption
-            cipher = ChaCha20.new(key=chakey)
-            print(f"[{cipher}] ChaCha20 Object Cipher One")
-            ciphertext = cipher.encrypt(joined)
-            print(f"Joined text after encrypt: [{ciphertext}] with ChaCha20")
-            client.send(cipher.nonce + ciphertext)
-            print(f"Nonce + joined text after encrypt: [{cipher.nonce + ciphertext}]")
+            # Define the KEM class
+            kem = KEM(**CONSTANTS_LIGHT_SABER)
+            # Generate key pairs for both client
+            publicKey, privateKey = kem.KeyGen()
+            print("Key Pair")
+            print(f"Public Key produced: {publicKey}")
+            print(f"Private Key produced: {privateKey}")
+            # joined = (f"[{name}] HAS JOINED THE CHAT!{publicKey}").encode()
+            client.send(publicKey)
             client.recv(10)
+
+            # chacha20 encryption
+            # cipher = ChaCha20.new(key=chakey)
+            # print(f"[{cipher}] ChaCha20 Object Cipher One")
+            # ciphertext = cipher.encrypt(joined)
+            # print(f"Joined text after encrypt: [{ciphertext}] with ChaCha20")
+            # client.send(cipher.nonce + ciphertext)
+            # print(f"Nonce + joined text after encrypt: [{cipher.nonce + ciphertext}]")
+            # client.recv(10)
 
             cipher2 = ChaCha20.new(key=chakey)
             # print(f"Left text before encrypt: [{cipher2}] ChaCha20 Object Cipher Two")
@@ -307,35 +323,37 @@ class GUI:
     # function to receive messages
     def receive(self):
         global receivedChakey
+
         while True:
             try:
                 data = client.recv(4096)
 
                 #encryption_len = 16  # for aes
                 encryption_len = 8  # for chacha20
+                saber_encryption_len = 735  # for saber
 
-                # if there is at least 1 byte encrypted
-                if data and len(data) > encryption_len + 1:
+                print(f"Encrypted Data Length: {len(data)}")
+                print(f"Current Chakey: {receivedChakey}")
 
+                # if data and len(data) > saber_encryption_len: # saber encrypted data received
+                if receivedChakey == b'empty': # client joined chatroom
+                    print(f"Received Encrypted Data with Saber: {data}")
+                    kem = KEM(**CONSTANTS_LIGHT_SABER)
+                    secretKey = kem.Decaps(data, privateKey)
+                    print(f"Received Decrypted Data with Saber (Secret Key): {secretKey}")
+                    receivedChakey = secretKey
+                    # message = message.decode(errors="ignore")
+                    # print(f"Decoded message: [{message}]")
+                else: # client send message
                     # chacha20 decryption
                     nonce = data[:encryption_len]  # 8 bytes for the nonce
                     ciphertext = data[
                                  encryption_len:]  # the rest of the data is encrypted
-
-                    if receivedChakey == b'empty': # new guest joined chatroom
-                        cipher = ChaCha20.new(key=chakey, nonce=nonce)
-                    else: # existing guest send message
-                        cipher = ChaCha20.new(key=receivedChakey, nonce=nonce)
-
-                    # cipher = ChaCha20.new(key=chakey, nonce=nonce)
-                    print(f"Nonce + received message: [{nonce + ciphertext}] Received Encrypted Message with ChaCha20")
+                    cipher = ChaCha20.new(key=receivedChakey, nonce=nonce)
+                    print(f"Nonce + received message: {nonce + ciphertext} Received Encrypted Message with ChaCha20")
                     message = cipher.decrypt(ciphertext)
                     message = message.decode(errors="ignore")
-                    splittedMessage = message.split('!')
-                    print(f"Splitted message: [{splittedMessage}]")
-                    if len(splittedMessage) > 1:
-                        receivedChakey = splittedMessage[1].encode()
-                    print(f"Decoded message: [{message}]")
+                    print(f"Decoded message: {message}")
 
                     # aes decryption
                     #iv = data[:encryption_len]  # 16 bytes for the iv
@@ -363,16 +381,15 @@ class GUI:
     # function to send messages
     def sendMessage(self):
         self.textCons.config(state=DISABLED)
-
         message = (f"{self.name}: {self.msg}").encode()
 
         try:
             # chacha20 encryption
-            print(f"Current ChaCha20 key: [{receivedChakey}]")
+            print(f"Current ChaCha20 key: {receivedChakey}")
             cipher = ChaCha20.new(key=receivedChakey)
             ciphertext = cipher.encrypt(message)
             client.send(cipher.nonce + ciphertext)
-            print(f"Nonce + sent message: [{cipher.nonce + ciphertext}] Sent Encrypted Message with ChaCha20")
+            print(f"Nonce + sent message: {cipher.nonce + ciphertext} Sent Encrypted Message with ChaCha20")
 
             # aes encryption
             #cipher = AES.new(aeskey, AES.MODE_CBC)

@@ -1,9 +1,18 @@
+import os
 import sys
 # import socket library
 import socket
 
+# from saber import kem
+from saber.utils.constans import CONSTANTS_LIGHT_SABER
+from saber.utils.algorithms import randombytes
+from Crypto.Cipher import AES
+from saber.pke import PKE
+from saber.kem import KEM
+
 # import threading library
 import threading
+from saber.kem import KEM
 
 # Choose a port that is free
 PORT = 8081
@@ -18,7 +27,7 @@ ADDRESS = (SERVER, PORT)
 FORMAT = "utf-8"
 
 # Lists that will contain all the clients/rooms connected to the server.
-rooms = {'GENERAL': {}, 'SCHOOL': {}}
+rooms = {'GENERAL': {}, 'SCHOOL': {}, 'TRY': {}}
 
 # Create a new socket for the server
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -72,12 +81,20 @@ def startServer():
 
 # incoming messages
 def handle(conn, addr, room, name, joined, left):
-    broadcastMessage(joined, room)
+    print(f"Received publicKey: {joined}")
+
+    # Server encapsulates a symmetric key for Client
+    kem = KEM(**CONSTANTS_LIGHT_SABER)
+    secretKey, ciphertext = kem.Encaps(joined)
+    print(f"Secret Key from Server: {secretKey}")
+    print(f"Cipher Text send to Client: {ciphertext}")
+    broadcastMessage(ciphertext, room)
     print(f"new connection {addr} = {name} to {room}.\n")
     while True:
         try:
             # receive message
             message = conn.recv(4096)
+            print(f"Received message: {message}")
             # broadcast message
             broadcastMessage(message, room)
         except:
@@ -94,7 +111,7 @@ def handle(conn, addr, room, name, joined, left):
 
 
 # method for broadcasting
-# messages to the each clients
+# messages to each client
 def broadcastMessage(message, room):
     for addr in rooms[room]:
         rooms[room].get(addr).send(message)
