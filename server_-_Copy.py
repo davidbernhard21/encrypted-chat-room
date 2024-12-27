@@ -12,7 +12,7 @@ from saber.kem import KEM
 
 # import threading library
 import threading
-from saber.kem import KEM
+import time
 
 # Choose a port that is free
 PORT = 8081
@@ -85,7 +85,15 @@ def handle(conn, addr, room, name, joined, left):
 
     # Server encapsulates a symmetric key for Client
     kem = KEM(**CONSTANTS_LIGHT_SABER)
+
+    start_time = time.perf_counter()
+    # print(f"Start Encryption Time: {start_time:.7f} seconds")
     secretKey, ciphertext = kem.Encaps(joined)
+    end_time = time.perf_counter()
+    # print(f"End Encryption Time: {end_time:.7f} seconds")
+    elapsed_time_seconds = end_time - start_time
+    print(f"Elapsed Send Saber Encryption Time: {elapsed_time_seconds:.7f} seconds")
+
     print(f"Secret Key from Server: {secretKey}")
     print(f"Cipher Text send to Client: {ciphertext}")
     broadcastMessage(ciphertext, room)

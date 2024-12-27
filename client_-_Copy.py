@@ -17,6 +17,7 @@ os.environ['TCL_LIBRARY'] = r'C:\Users\David\AppData\Local\Programs\Python\Pytho
 import sys
 import socket
 import threading
+import time
 # Tkinter is the standard GUI (Graphical User Interface) library included with most Python installations.
 # It provides tools for creating desktop applications with graphical interfaces,
 # allowing developers to build windows, dialogs, buttons, and other interactive elements.
@@ -339,7 +340,15 @@ class GUI:
                 if receivedChakey == b'empty': # client joined chatroom
                     print(f"Received Encrypted Data with Saber: {data}")
                     kem = KEM(**CONSTANTS_LIGHT_SABER)
+
+                    start_time = time.perf_counter()
+                    # print(f"Start Decryption Time: {start_time:.7f} seconds")
                     secretKey = kem.Decaps(data, privateKey)
+                    end_time = time.perf_counter()
+                    # print(f"End Decryption Time: {end_time:.7f} seconds")
+                    elapsed_time_seconds = end_time - start_time
+                    print(f"Elapsed Receive Saber Decryption Time: {elapsed_time_seconds:.7f} seconds")
+
                     print(f"Received Decrypted Data with Saber (Secret Key): {secretKey}")
                     receivedChakey = secretKey
                     # message = message.decode(errors="ignore")
@@ -351,7 +360,15 @@ class GUI:
                                  encryption_len:]  # the rest of the data is encrypted
                     cipher = ChaCha20.new(key=receivedChakey, nonce=nonce)
                     print(f"Nonce + received message: {nonce + ciphertext} Received Encrypted Message with ChaCha20")
+
+                    start_time = time.perf_counter()
+                    # print(f"Start Decryption Time: {start_time:.7f} seconds")
                     message = cipher.decrypt(ciphertext)
+                    end_time = time.perf_counter()
+                    # print(f"End Decryption Time: {end_time:.7f} seconds")
+                    elapsed_time_seconds = end_time - start_time
+                    print(f"Elapsed Receive Decryption Time: {elapsed_time_seconds:.7f} seconds")
+
                     message = message.decode(errors="ignore")
                     print(f"Decoded message: {message}")
 
@@ -387,7 +404,15 @@ class GUI:
             # chacha20 encryption
             print(f"Current ChaCha20 key: {receivedChakey}")
             cipher = ChaCha20.new(key=receivedChakey)
+
+            start_time = time.perf_counter()
+            # print(f"Start Encryption Time: {start_time:.7f} seconds")
             ciphertext = cipher.encrypt(message)
+            end_time = time.perf_counter()
+            # print(f"End Encryption Time: {end_time:.7f} seconds")
+            elapsed_time_seconds = end_time - start_time
+            print(f"Elapsed Send Encryption Time: {elapsed_time_seconds:.7f} seconds")
+
             client.send(cipher.nonce + ciphertext)
             print(f"Nonce + sent message: {cipher.nonce + ciphertext} Sent Encrypted Message with ChaCha20")
 
